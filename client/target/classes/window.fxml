@@ -9,13 +9,19 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.TextField?>
 
+<?import javafx.scene.control.ListView?>
 <VBox fx:controller="ru.geekbrains.march.chat.client.Controller" xmlns:fx="http://javafx.com/fxml" alignment="center">
     <HBox fx:id="loginPanel">
-        <TextField fx:id="usernameField" HBox.hgrow="ALWAYS" promptText="Укажите свой ник"/>
+        <TextField fx:id="usernameField" HBox.hgrow="ALWAYS" promptText="Укажите свой ник" onAction="#login"/>
         <Button text="Войти" onAction="#login"/>
     </HBox>
-    <TextArea fx:id="msgArea" VBox.vgrow="ALWAYS" editable="false"/>
-    <HBox fx:id="msgPanel" visible="false" managed="false">
+
+    <HBox VBox.vgrow="ALWAYS">
+        <TextArea fx:id="msgArea" HBox.hgrow="ALWAYS" editable="false" wrapText="true"/>
+        <ListView fx:id="clientsList" prefWidth="150" maxWidth="150" minWidth="150"/>
+    </HBox>
+
+    <HBox fx:id="msgPanel">
         <TextField fx:id="msgField" HBox.hgrow="ALWAYS" promptText="Введите сообщение" onAction="#sendMsg"/>
         <Button text="Отправить" onAction="#sendMsg"/>
     </HBox>
