@@ -9,10 +9,17 @@ import java.util.List;
 public class Server {
     private int port;
     private List<ClientHandler> clients;
+    private DbAuthenticationProvider authenticationProvider;
+
+    public AuthenticationProvider getAuthenticationProvider() {
+        return authenticationProvider;
+    }
 
     public Server(int port) {
         this.port = port;
         this.clients = new ArrayList<>();
+        this.authenticationProvider = new DbAuthenticationProvider();
+        this.authenticationProvider.connect();
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Сервер запущен на порту " + port);
             while (true) {
@@ -23,6 +30,8 @@ public class Server {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            authenticationProvider.disconnect();
         }
     }
 

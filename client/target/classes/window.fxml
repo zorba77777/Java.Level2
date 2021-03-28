@@ -10,9 +10,11 @@
 <?import javafx.scene.control.TextField?>
 
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.PasswordField?>
 <VBox fx:controller="ru.geekbrains.march.chat.client.Controller" xmlns:fx="http://javafx.com/fxml" alignment="center">
     <HBox fx:id="loginPanel">
-        <TextField fx:id="usernameField" HBox.hgrow="ALWAYS" promptText="Укажите свой ник" onAction="#login"/>
+        <TextField fx:id="loginField" HBox.hgrow="ALWAYS" promptText="Введите имя пользователя" onAction="#login"/>
+        <PasswordField fx:id="passwordField" HBox.hgrow="ALWAYS" promptText="Введите пароль" onAction="#login"/>
         <Button text="Войти" onAction="#login"/>
     </HBox>
 

@@ -26,15 +26,25 @@ public class ClientHandler {
                 while (true) { // Цикл авторизации
                     String msg = in.readUTF();
                     if (msg.startsWith("/login ")) {
-                        // login Bob
-                        String usernameFromLogin = msg.split("\\s")[1];
-
-                        if (server.isUserOnline(usernameFromLogin)) {
-                            sendMessage("/login_failed Current nickname is already used");
+                        // /login Bob 100xyz
+                        String[] tokens = msg.split("\\s+");
+                        if (tokens.length != 3) {
+                            sendMessage("/login_failed Введите имя пользователя и пароль");
                             continue;
                         }
+                        String login = tokens[1];
+                        String password = tokens[2];
 
-                        username = usernameFromLogin;
+                        String userNickname = server.getAuthenticationProvider().getNicknameByLoginAndPassword(login, password);
+                        if (userNickname == null) {
+                            sendMessage("/login_failed Введен некорретный логин/пароль");
+                            continue;
+                        }
+                        if (server.isUserOnline(userNickname)) {
+                            sendMessage("/login_failed Учетная запись уже используется");
+                            continue;
+                        }
+                        username = userNickname;
                         sendMessage("/login_ok " + username);
                         server.subscribe(this);
                         break;
@@ -60,9 +70,31 @@ public class ClientHandler {
     private void executeCommand(String cmd) {
         // /w Bob Hello, Bob!!!
         if (cmd.startsWith("/w ")) {
-            String[] tokens = cmd.split("\\s", 3);
+            String[] tokens = cmd.split("\\s+", 3);
+            if (tokens.length != 3) {
+                sendMessage("Server: Введена некорректная команда");
+                return;
+            }
             server.sendPrivateMessage(this, tokens[1], tokens[2]);
             return;
+        }
+
+        // /change_nick myNewNickname
+        if (cmd.startsWith("/change_nick ")) {
+            String[] tokens = cmd.split("\\s+");
+            if (tokens.length != 2) {
+                sendMessage("Server: Введена некорректная команда");
+                return;
+            }
+            String newNickname = tokens[1];
+            if (server.isUserOnline(newNickname)) {
+                sendMessage("Server: Такой никнейм уже занят");
+                return;
+            }
+            server.getAuthenticationProvider().changeNickname(username, newNickname);
+            username = newNickname;
+            sendMessage("Server: Вы изменили никнейм на " + newNickname);
+            server.broadcastClientsList();
         }
     }
 
