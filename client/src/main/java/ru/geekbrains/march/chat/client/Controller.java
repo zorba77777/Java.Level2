@@ -1,18 +1,21 @@
 package ru.geekbrains.march.chat.client;
 
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Controller implements Initializable {
     @FXML
@@ -34,6 +37,7 @@ public class Controller implements Initializable {
     private DataInputStream in;
     private DataOutputStream out;
     private String username;
+    private String login;
 
     public void setUsername(String username) {
         this.username = username;
@@ -63,6 +67,7 @@ public class Controller implements Initializable {
 
         try {
             out.writeUTF("/login " + loginField.getText() + " " + passwordField.getText());
+            this.login = loginField.getText();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -75,6 +80,9 @@ public class Controller implements Initializable {
             out = new DataOutputStream(socket.getOutputStream());
             Thread t = new Thread(() -> {
                 try {
+
+                    boolean isFirstLaunch = true;
+
                     // Цикл авторизации
                     while (true) {
                         String msg = in.readUTF();
@@ -104,7 +112,17 @@ public class Controller implements Initializable {
                             }
                             continue;
                         }
+
+                        if (isFirstLaunch) {
+                            isFirstLaunch = false;
+                            List<String> msgLog = getMsgLog();
+                            for (String loggedMsg : msgLog) {
+                                msgArea.appendText(loggedMsg + "\n");
+                            }
+                        }
+
                         msgArea.appendText(msg + "\n");
+                        writeMsgToFile(msg);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -145,5 +163,35 @@ public class Controller implements Initializable {
         alert.setTitle("March Chat FX");
         alert.setHeaderText(null);
         alert.showAndWait();
+    }
+
+    private void writeMsgToFile(String message) {
+        File msgLogFile = new File(this.login);
+        try {
+            msgLogFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(msgLogFile, true), "UTF-8"));
+            writer.write(message);
+            writer.newLine();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<String> getMsgLog() {
+        List<String> result = Collections.emptyList();
+        if (Files.exists(Paths.get(this.login))) {
+            try (Stream<String> lines = Files.lines(Paths.get(this.login))) {
+                result = lines.collect(Collectors.toList());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return result;
     }
 }
