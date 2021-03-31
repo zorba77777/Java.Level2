@@ -16,7 +16,10 @@ import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
     @FXML
-    TextField msgField, usernameField;
+    TextField msgField, loginField;
+
+    @FXML
+    PasswordField passwordField;
 
     @FXML
     TextArea msgArea;
@@ -34,21 +37,13 @@ public class Controller implements Initializable {
 
     public void setUsername(String username) {
         this.username = username;
-        if (username != null) {
-            loginPanel.setVisible(false);
-            loginPanel.setManaged(false);
-            msgPanel.setVisible(true);
-            msgPanel.setManaged(true);
-            clientsList.setVisible(true);
-            clientsList.setManaged(true);
-        } else {
-            loginPanel.setVisible(true);
-            loginPanel.setManaged(true);
-            msgPanel.setVisible(false);
-            msgPanel.setManaged(false);
-            clientsList.setVisible(false);
-            clientsList.setManaged(false);
-        }
+        boolean usernameIsNull = username == null;
+        loginPanel.setVisible(usernameIsNull);
+        loginPanel.setManaged(usernameIsNull);
+        msgPanel.setVisible(!usernameIsNull);
+        msgPanel.setManaged(!usernameIsNull);
+        clientsList.setVisible(!usernameIsNull);
+        clientsList.setManaged(!usernameIsNull);
     }
 
     @Override
@@ -57,18 +52,17 @@ public class Controller implements Initializable {
     }
 
     public void login() {
+        if (loginField.getText().isEmpty()) {
+            showErrorAlert("Имя пользователя не может быть пустым");
+            return;
+        }
+
         if (socket == null || socket.isClosed()) {
             connect();
         }
 
-        if (usernameField.getText().isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Имя пользователя не может быть пустым", ButtonType.OK);
-            alert.showAndWait();
-            return;
-        }
-
         try {
-            out.writeUTF("/login " + usernameField.getText());
+            out.writeUTF("/login " + loginField.getText() + " " + passwordField.getText());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -96,13 +90,12 @@ public class Controller implements Initializable {
                     // Цикл общения
                     while (true) {
                         String msg = in.readUTF();
+                        // todo вынести этот блок
                         if (msg.startsWith("/")) {
                             if (msg.startsWith("/clients_list ")) {
                                 // /clients_list Bob Max Jack
                                 String[] tokens = msg.split("\\s");
-
                                 Platform.runLater(() -> {
-                                    System.out.println(Thread.currentThread().getName());
                                     clientsList.getItems().clear();
                                     for (int i = 1; i < tokens.length; i++) {
                                         clientsList.getItems().add(tokens[i]);
@@ -121,8 +114,7 @@ public class Controller implements Initializable {
             });
             t.start();
         } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Невозможно подключиться к серверу", ButtonType.OK);
-            alert.showAndWait();
+            showErrorAlert("Невозможно подключиться к серверу");
         }
     }
 
@@ -132,8 +124,7 @@ public class Controller implements Initializable {
             msgField.clear();
             msgField.requestFocus();
         } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Невозможно отправить сообщение", ButtonType.OK);
-            alert.showAndWait();
+            showErrorAlert("Невозможно отправить сообщение");
         }
     }
 
@@ -146,5 +137,13 @@ public class Controller implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void showErrorAlert(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText(message);
+        alert.setTitle("March Chat FX");
+        alert.setHeaderText(null);
+        alert.showAndWait();
     }
 }
