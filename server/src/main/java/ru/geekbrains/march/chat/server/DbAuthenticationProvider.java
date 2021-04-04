@@ -1,55 +1,55 @@
 package ru.geekbrains.march.chat.server;
 
-import java.sql.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class DbAuthenticationProvider implements AuthenticationProvider {
+    private DbConnection dbConnection;
 
-    private static Connection connection;
-    private static Statement stmt;
+    @Override
+    public void init() {
+        dbConnection = new DbConnection();
+    }
 
     @Override
     public String getNicknameByLoginAndPassword(String login, String password) {
-        try (ResultSet rs = stmt.executeQuery("SELECT * FROM users WHERE LOGIN = \"" + login + "\" AND PASSWORD = \"" + password + "\";")) {
-            while (rs.next()) {
+        String query = String.format("select nickname from users where login = '%s' and password = '%s';", login, password);
+        try (ResultSet rs = dbConnection.getStmt().executeQuery(query)) {
+            if (rs.next()) {
                 return rs.getString("nickname");
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return null;
     }
 
     @Override
     public void changeNickname(String oldNickname, String newNickname) {
-        throw new UnsupportedOperationException();
-    }
-
-    public static void connect() {
+        String query = String.format("update users set nickname = '%s' where nickname = '%s';", oldNickname, newNickname);
         try {
-            Class.forName("org.sqlite.JDBC");
-            connection = DriverManager.getConnection("jdbc:sqlite:users");
-            stmt = connection.createStatement();
-        } catch (ClassNotFoundException | SQLException e) {
+            // todo есть опасность наткнуться на не уникальный ник
+            dbConnection.getStmt().executeUpdate(query);
+        } catch (SQLException e) {
             e.printStackTrace();
-            throw new RuntimeException("Невозможно подключиться к БД");
         }
     }
 
-    public static void disconnect() {
-        try {
-            if (stmt != null) {
-                stmt.close();
+    @Override
+    public boolean isNickBusy(String nickname) {
+        String query = String.format("select id from users where nickname = '%s';", nickname);
+        try (ResultSet rs = dbConnection.getStmt().executeQuery(query)) {
+            if (rs.next()) {
+                return true;
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return false;
+    }
 
-        if (connection != null) {
-            try {
-                connection.close();
-            } catch (SQLException throwable) {
-                throwable.printStackTrace();
-            }
-        }
+    @Override
+    public void shutdown() {
+        dbConnection.close();
     }
 }

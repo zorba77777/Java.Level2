@@ -1,16 +1,17 @@
 package ru.geekbrains.march.chat.server;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ClientHandler {
-    private Server server;
+    public Server server;
     private Socket socket;
-    private DataInputStream in;
+    public DataInputStream in;
     private DataOutputStream out;
-    private String username;
+    public String username;
+    private ExecutorService executorService;
 
     public String getUsername() {
         return username;
@@ -21,53 +22,11 @@ public class ClientHandler {
         this.socket = socket;
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
-        new Thread(() -> {
-            try {
-                while (true) { // Цикл авторизации
-                    String msg = in.readUTF();
-                    if (msg.startsWith("/login ")) {
-                        // /login Bob 100xyz
-                        String[] tokens = msg.split("\\s+");
-                        if (tokens.length != 3) {
-                            sendMessage("/login_failed Введите имя пользователя и пароль");
-                            continue;
-                        }
-                        String login = tokens[1];
-                        String password = tokens[2];
-
-                        String userNickname = server.getAuthenticationProvider().getNicknameByLoginAndPassword(login, password);
-                        if (userNickname == null) {
-                            sendMessage("/login_failed Введен некорретный логин/пароль");
-                            continue;
-                        }
-                        if (server.isUserOnline(userNickname)) {
-                            sendMessage("/login_failed Учетная запись уже используется");
-                            continue;
-                        }
-                        username = userNickname;
-                        sendMessage("/login_ok " + username);
-                        server.subscribe(this);
-                        break;
-                    }
-                }
-
-                while (true) { // Цикл общения с клиентом
-                    String msg = in.readUTF();
-                    if (msg.startsWith("/")) {
-                        executeCommand(msg);
-                        continue;
-                    }
-                    server.broadcastMessage(username + ": " + msg);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                disconnect();
-            }
-        }).start();
+        this.executorService = Executors.newSingleThreadExecutor();
+        this.executorService.execute(new ClientThreadRunner(this));
     }
 
-    private void executeCommand(String cmd) {
+    public void executeCommand(String cmd) {
         // /w Bob Hello, Bob!!!
         if (cmd.startsWith("/w ")) {
             String[] tokens = cmd.split("\\s+", 3);
@@ -87,7 +46,7 @@ public class ClientHandler {
                 return;
             }
             String newNickname = tokens[1];
-            if (server.isUserOnline(newNickname)) {
+            if (server.getAuthenticationProvider().isNickBusy(newNickname)) {
                 sendMessage("Server: Такой никнейм уже занят");
                 return;
             }
