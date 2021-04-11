@@ -1,0 +1,8 @@
+TRACE 2021-04-11 22:25:36 [main] ru.geekbrains.march.chat.server.Server (Server.java:27) - Сервер запущен на порту 8189
+INFO  2021-04-11 22:26:27 [main] ru.geekbrains.march.chat.server.Server (Server.java:27) - Сервер запущен на порту 8189
+INFO  2021-04-11 22:27:30 [main] ru.geekbrains.march.chat.server.Server (Server.java:27) - Сервер запущен на порту 8189
+INFO  2021-04-11 22:27:30 [main] ru.geekbrains.march.chat.server.Server (Server.java:29) - Ждем нового клиента..
+INFO  2021-04-11 22:43:41 [main] ru.geekbrains.march.chat.server.Server (Server.java:29) - Сервер запущен на порту 8189
+INFO  2021-04-11 22:43:41 [main] ru.geekbrains.march.chat.server.Server (Server.java:31) - Ждем нового клиента..
+INFO  2021-04-11 22:44:07 [main] ru.geekbrains.march.chat.server.Server (Server.java:29) - Сервер запущен на порту 8189
+INFO  2021-04-11 22:44:07 [main] ru.geekbrains.march.chat.server.Server (Server.java:31) - Ждем нового клиента..

@@ -2,16 +2,18 @@ package ru.geekbrains.march.chat.server;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.sql.Statement;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ClientHandler {
-    public Server server;
+    private Server server;
     private Socket socket;
-    public DataInputStream in;
+    private DataInputStream in;
     private DataOutputStream out;
-    public String username;
-    private ExecutorService executorService;
+    private String username;
+    private static final Logger logger = LogManager.getLogger(ClientHandler.class);
 
     public String getUsername() {
         return username;
@@ -22,11 +24,53 @@ public class ClientHandler {
         this.socket = socket;
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
-        this.executorService = Executors.newSingleThreadExecutor();
-        this.executorService.execute(new ClientThreadRunner(this));
+        new Thread(() -> {
+            try {
+                while (true) { // Цикл авторизации
+                    String msg = in.readUTF();
+                    if (msg.startsWith("/login ")) {
+                        // /login Bob 100xyz
+                        String[] tokens = msg.split("\\s+");
+                        if (tokens.length != 3) {
+                            sendMessage("/login_failed Введите имя пользователя и пароль");
+                            continue;
+                        }
+                        String login = tokens[1];
+                        String password = tokens[2];
+
+                        String userNickname = server.getAuthenticationProvider().getNicknameByLoginAndPassword(login, password);
+                        if (userNickname == null) {
+                            sendMessage("/login_failed Введен некорретный логин/пароль");
+                            continue;
+                        }
+                        if (server.isUserOnline(userNickname)) {
+                            sendMessage("/login_failed Учетная запись уже используется");
+                            continue;
+                        }
+                        username = userNickname;
+                        sendMessage("/login_ok " + username);
+                        server.subscribe(this);
+                        break;
+                    }
+                }
+
+                while (true) { // Цикл общения с клиентом
+                    String msg = in.readUTF();
+                    if (msg.startsWith("/")) {
+                        executeCommand(msg);
+                        continue;
+                    }
+                    server.broadcastMessage(username + ": " + msg);
+                }
+            } catch (IOException e) {
+                logger.throwing(Level.ERROR, e);
+            } finally {
+                disconnect();
+            }
+        }).start();
     }
 
-    public void executeCommand(String cmd) {
+    private void executeCommand(String cmd) {
         // /w Bob Hello, Bob!!!
         if (cmd.startsWith("/w ")) {
             String[] tokens = cmd.split("\\s+", 3);
@@ -61,6 +105,7 @@ public class ClientHandler {
         try {
             out.writeUTF(message);
         } catch (IOException e) {
+            logger.throwing(Level.ERROR, e);
             disconnect();
         }
     }
@@ -71,7 +116,7 @@ public class ClientHandler {
             try {
                 socket.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.throwing(Level.ERROR, e);
             }
         }
     }

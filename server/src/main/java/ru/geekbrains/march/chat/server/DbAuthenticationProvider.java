@@ -2,9 +2,13 @@ package ru.geekbrains.march.chat.server;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class DbAuthenticationProvider implements AuthenticationProvider {
     private DbConnection dbConnection;
+    private static final Logger logger = LogManager.getLogger(DbAuthenticationProvider.class);
 
     @Override
     public void init() {
@@ -19,7 +23,7 @@ public class DbAuthenticationProvider implements AuthenticationProvider {
                 return rs.getString("nickname");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.throwing(Level.ERROR, e);
         }
         return null;
     }
@@ -31,7 +35,7 @@ public class DbAuthenticationProvider implements AuthenticationProvider {
             // todo есть опасность наткнуться на не уникальный ник
             dbConnection.getStmt().executeUpdate(query);
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.throwing(Level.ERROR, e);
         }
     }
 
@@ -43,7 +47,7 @@ public class DbAuthenticationProvider implements AuthenticationProvider {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.throwing(Level.ERROR, e);
         }
         return false;
     }

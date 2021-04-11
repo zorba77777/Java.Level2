@@ -4,10 +4,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class DbConnection {
     private Connection connection;
     private Statement stmt;
+    private static final Logger logger = LogManager.getLogger(DbConnection.class);
 
     public Statement getStmt() {
         return stmt;
@@ -19,6 +23,7 @@ public class DbConnection {
             this.connection = DriverManager.getConnection("jdbc:sqlite:database.db");
             this.stmt = connection.createStatement();
         } catch (ClassNotFoundException | SQLException e) {
+            logger.throwing(Level.ERROR, e);
             throw new RuntimeException("Невозможно подключиться к базе данных");
         }
     }
@@ -28,14 +33,14 @@ public class DbConnection {
             try {
                 stmt.close();
             } catch (SQLException throwables) {
-                throwables.printStackTrace();
+                logger.throwing(Level.ERROR, throwables);
             }
         }
         if (connection != null) {
             try {
                 connection.close();
             } catch (SQLException throwables) {
-                throwables.printStackTrace();
+                logger.throwing(Level.ERROR, throwables);
             }
         }
     }
