@@ -6,10 +6,15 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class Server {
     private int port;
     private List<ClientHandler> clients;
     private AuthenticationProvider authenticationProvider;
+    private static final Logger logger = LogManager.getLogger(Server.class);
 
     public AuthenticationProvider getAuthenticationProvider() {
         return authenticationProvider;
@@ -21,15 +26,15 @@ public class Server {
         this.authenticationProvider = new DbAuthenticationProvider();
         this.authenticationProvider.init();
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Сервер запущен на порту " + port);
+            logger.info("Сервер запущен на порту " + port);
             while (true) {
-                System.out.println("Ждем нового клиента..");
+                logger.info("Ждем нового клиента..");
                 Socket socket = serverSocket.accept();
-                System.out.println("Клиент подключился");
+                logger.info("Клиент подключился");
                 new ClientHandler(this, socket);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.throwing(Level.ERROR, e);
         } finally {
             this.authenticationProvider.shutdown();
         }
@@ -58,6 +63,7 @@ public class Server {
             if (c.getUsername().equals(receiverUsername)) {
                 c.sendMessage("От: " + sender.getUsername() + " Сообщение: " + message);
                 sender.sendMessage("Пользователю: " + receiverUsername + " Сообщение: " + message);
+                logger.info("Клиент послал сообщение");
                 return;
             }
         }
